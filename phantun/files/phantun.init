@@ -1,0 +1,170 @@
+#!/bin/sh /etc/rc.common
+# This is free software, licensed under the GNU General Public License v2.
+# See /LICENSE for more information.
+#
+# Init script for Phantun (https://github.com/dndx/phantun)
+# Extended from https://github.com/hizukiayaka/phantun-openwrt to cover
+# every command line option supported by upstream phantun v0.8.1.
+
+START=99
+STOP=10
+
+USE_PROCD=1
+CLIENT_PROG=/usr/sbin/phantun-client
+SERVER_PROG=/usr/sbin/phantun-server
+
+. /lib/functions/network.sh
+
+section_enabled() {
+	local enable enabled
+	config_get_bool enable  "$1" 'enable'  0
+	config_get_bool enabled "$1" 'enabled' 0
+	[ "$enable" -gt 0 ] || [ "$enabled" -gt 0 ]
+}
+
+# Build the common command line for both client and server instances.
+# $1 = section name
+phantun_build_args() {
+	local s="$1"
+	local listen remote tun tun_local tun_peer ipv4_only
+	local tun_local6 tun_peer6 handshake loglevel
+
+	config_get listen    "$s" local
+	config_get remote    "$s" remote
+	config_get tun       "$s" tun       ''
+	config_get tun_local "$s" tun_local ''
+	config_get tun_peer  "$s" tun_peer  ''
+	config_get tun_local6 "$s" tun_local6 ''
+	config_get tun_peer6  "$s" tun_peer6  ''
+	config_get_bool ipv4_only "$s" ipv4_only 0
+	config_get handshake "$s" handshake_packet ''
+	config_get loglevel  "$s" loglevel 'info'
+
+	[ -n "$listen" ] || { echo "phantun: section $s missing 'local'" >&2; return 1; }
+	[ -n "$remote" ] || { echo "phantun: section $s missing 'remote'" >&2; return 1; }
+
+	procd_append_param command -l "$listen" -r "$remote"
+
+	[ -n "$tun" ]       && procd_append_param command --tun "$tun"
+	[ -n "$tun_local" ] && procd_append_param command --tun-local "$tun_local"
+	[ -n "$tun_peer" ]  && procd_append_param command --tun-peer "$tun_peer"
+
+	if [ "$ipv4_only" -eq 1 ]; then
+		procd_append_param command -4
+	else
+		[ -n "$tun_local6" ] && procd_append_param command --tun-local6 "$tun_local6"
+		[ -n "$tun_peer6" ]  && procd_append_param command --tun-peer6 "$tun_peer6"
+	fi
+
+	if [ -n "$handshake" ] && [ -f "$handshake" ]; then
+		procd_append_param command --handshake-packet "$handshake"
+	fi
+
+	# pretty_env_logger reads RUST_LOG; "off" leaves the env unset
+	case "$loglevel" in
+		error|warn|info|debug|trace)
+			procd_set_param env RUST_LOG="$loglevel"
+			;;
+	esac
+
+	return 0
+}
+
+# Optional automatic firewall rules (fw4 / nftables, inet family => v4+v6)
+# client: SNAT/MASQUERADE traffic leaving the TUN device via the WAN
+# server: DNAT incoming TCP dport <listen> to the TUN local address
+phantun_firewall() {
+	local s="$1" mode="$2"
+	local firewall network tun listen
+	local physdev tun_local tun_local6 ipv4_only
+
+	config_get_bool firewall "$s" firewall 0
+	[ "$firewall" -eq 1 ] || return 0
+	command -v nft >/dev/null 2>&1 || return 0
+
+	config_get network "$s" network 'wan'
+	config_get tun     "$s" tun     ''
+	config_get listen  "$s" local
+
+	network_get_physdev physdev "$network" || return 0
+	nft list table inet phantun >/dev/null 2>&1 || nft add table inet phantun
+
+	case "$mode" in
+		client)
+			[ -n "$tun" ] || return 0
+			nft add chain inet phantun "$s" \
+				"{ type nat hook postrouting priority srcnat; policy accept; }" 2>/dev/null
+			nft flush chain inet phantun "$s"
+			nft add rule inet phantun "$s" iifname "$tun" oif "$physdev" masquerade
+			;;
+		server)
+			config_get tun_local  "$s" tun_local '192.168.201.1'
+			config_get tun_local6 "$s" tun_local6 'fcc9::1'
+			config_get_bool ipv4_only "$s" ipv4_only 0
+			local port="${listen##*:}"
+			echo "$port" | grep -q '^[0-9]*$' || return 0
+			nft add chain inet phantun "$s" \
+				"{ type nat hook prerouting priority dstnat; policy accept; }" 2>/dev/null
+			nft flush chain inet phantun "$s"
+			nft add rule inet phantun "$s" iif "$physdev" tcp dport "$port" dnat ip to "$tun_local"
+			[ "$ipv4_only" -eq 1 ] || \
+				nft add rule inet phantun "$s" iif "$physdev" tcp dport "$port" dnat ip6 to "$tun_local6"
+			;;
+	esac
+}
+
+phantun_firewall_cleanup() {
+	local s="$1"
+	config_get_bool firewall "$s" firewall 0
+	[ "$firewall" -eq 1 ] || return 0
+	command -v nft >/dev/null 2>&1 || return 0
+	nft flush chain inet phantun "$s" 2>/dev/null
+	nft delete chain inet phantun "$s" 2>/dev/null
+}
+
+start_phantun_instance() {
+	local s="$1" prog
+	local cfgtype
+
+	config_get cfgtype "$s" TYPE
+	case "$cfgtype" in
+		client) prog="$CLIENT_PROG" ;;
+		server) prog="$SERVER_PROG" ;;
+		*) return 1 ;;
+	esac
+
+	section_enabled "$s" || return 0
+
+	procd_open_instance "$s"
+	procd_set_param command "$prog"
+	phantun_build_args "$s" || { procd_close_instance; return 1; }
+	procd_set_param respawn 3600 5 0
+	procd_close_instance
+
+	phantun_firewall "$s" "$cfgtype"
+}
+
+start_service() {
+	local instance="$1"
+
+	config_load phantun
+
+	if [ -n "$instance" ]; then
+		start_phantun_instance "$instance"
+	else
+		config_foreach start_phantun_instance client
+		config_foreach start_phantun_instance server
+	fi
+}
+
+stop_service() {
+	local s
+	config_load phantun
+	for s in $(uci -q show phantun | sed -nE "s/^phantun\.([^=.]+)=.*/\1/p"); do
+		phantun_firewall_cleanup "$s"
+	done
+}
+
+service_triggers() {
+	procd_add_reload_trigger phantun
+}

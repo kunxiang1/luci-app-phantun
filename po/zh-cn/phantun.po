@@ -1,0 +1,197 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Project-Id-Version: luci-app-phantun\n"
+"Language: zh-cn\n"
+
+msgid "Phantun"
+msgstr "Phantun UDP 混淆隧道"
+
+msgid "Phantun is a lightweight and fast UDP to TCP obfuscator. It obfuscates UDP packets into fake TCP streams so that they can pass through stateful firewalls/NATs which block or throttle UDP traffic. Configure client instances on the router itself or on remote servers below. See <a href=\"https://github.com/dndx/phantun\">github.com/dndx/phantun</a> for details."
+msgstr "Phantun 是一款轻量、高速的 UDP 转 TCP 混淆器。它将 UDP 报文混淆为伪 TCP 流，从而可以通过阻断或限速 UDP 的有状态防火墙/NAT。可在下方分别配置客户端（client）与服务端（server）实例。详见 <a href=\"https://github.com/dndx/phantun\">github.com/dndx/phantun</a>。"
+
+msgid "Service Status"
+msgstr "服务状态"
+
+msgid "Status"
+msgstr "状态"
+
+msgid "Daemon"
+msgstr "守护进程"
+
+msgid "Running"
+msgstr "运行中"
+
+msgid "Not running"
+msgstr "未运行"
+
+msgid "Configured instances"
+msgstr "已配置实例"
+
+msgid "Clients"
+msgstr "客户端"
+
+msgid "Servers"
+msgstr "服务端"
+
+msgid "Remember to enable Kernel IP forwarding (net.ipv4.ip_forward=1) and to make sure both ends run the same Phantun version."
+msgstr "请记得开启内核 IP 转发（net.ipv4.ip_forward=1），并确保两端运行相同版本的 Phantun。"
+
+msgid "Restart Phantun"
+msgstr "重启 Phantun"
+
+msgid "Restart"
+msgstr "重启"
+
+msgid "Phantun service restarted."
+msgstr "Phantun 服务已重启。"
+
+msgid "This field is required"
+msgstr "此字段为必填项"
+
+msgid "Expected format: IP:PORT, [IPv6]:PORT or HOST:PORT (e.g. 127.0.0.1:1234, [::1]:4567, example.com:4567)"
+msgstr "格式应为 IP:端口、[IPv6]:端口 或 域名:端口（例如 127.0.0.1:1234、[::1]:4567、example.com:4567）"
+
+msgid "Port must be between 1 and 65535"
+msgstr "端口号必须在 1 到 65535 之间"
+
+msgid "Expected a single port number (1-65535)"
+msgstr "应为单个端口号（1-65535）"
+
+msgid "Only letters, digits and the characters _ . - : are allowed"
+msgstr "仅允许字母、数字及 _ . - : 字符"
+
+msgid "Please enter an absolute path, e.g. /etc/phantun/handshake.bin"
+msgstr "请输入绝对路径，例如 /etc/phantun/handshake.bin"
+
+msgid "The client listens for plain UDP packets on its local address and forwards them through the Phantun server. Traffic from the LAN reaching the router must be routed into the TUN interface (policy routing or DNAT), and SNAT/MASQUERADE on the WAN interface is required — enable \"Auto firewall rules\" per instance to insert it automatically."
+msgstr "客户端在本机地址监听普通 UDP 报文，并通过 Phantun 服务端转发。来自局域网、需要走隧道的流量必须路由进 TUN 接口（策略路由或 DNAT），且需在 WAN 接口上做 SNAT/MASQUERADE——勾选下方“自动防火墙规则”即可自动添加。"
+
+msgid "Enabled"
+msgstr "已启用"
+
+msgid "Start this instance when the service starts"
+msgstr "服务启动时同时启动此实例"
+
+msgid "UDP listen address (--local)"
+msgstr "UDP 监听地址（--local）"
+
+msgid "IP and port where this client listens for incoming UDP datagrams, e.g. 0.0.0.0:1234. IPv6 must be written as [IPv6]:PORT"
+msgstr "客户端监听入站 UDP 报文的 IP 与端口，例如 0.0.0.0:1234。IPv6 地址须写成 [IPv6]:端口 形式"
+
+msgid "Phantun server (--remote)"
+msgstr "Phantun 服务端地址（--remote）"
+
+msgid "Address or host name and port of the Phantun server to connect to, e.g. 10.0.0.1:4567 or example.com:4567. IPv6 must be written as [IPv6]:PORT"
+msgstr "要连接的 Phantun 服务端 IP/域名与端口，例如 10.0.0.1:4567 或 example.com:4567。IPv6 地址须写成 [IPv6]:端口 形式"
+
+msgid "TUN interface name (--tun)"
+msgstr "TUN 接口名称（--tun）"
+
+msgid "Name of the TUN interface created by Phantun. Leave empty to let the kernel pick the next available name."
+msgstr "Phantun 创建的 TUN 接口名称。留空则由内核自动选择下一个可用名称。"
+
+msgid "TUN IPv4 local address (--tun-local)"
+msgstr "TUN IPv4 本端地址（--tun-local）"
+
+msgid "IPv4 address assigned to the TUN interface (the O/S end)"
+msgstr "分配给 TUN 接口的 IPv4 地址（系统本端）"
+
+msgid "TUN IPv4 peer address (--tun-peer)"
+msgstr "TUN IPv4 对端地址（--tun-peer）"
+
+msgid "IPv4 destination (peer) address of the TUN interface (the Phantun client end). SNAT/MASQUERADE is required on the Internet facing interface."
+msgstr "TUN 接口的 IPv4 目的（对端）地址（Phantun 客户端一侧）。需在面向互联网的接口上配置 SNAT/MASQUERADE。"
+
+msgid "IPv4 only (-4)"
+msgstr "仅使用 IPv4（-4）"
+
+msgid "Only use IPv4 when connecting to the remote and do not assign IPv6 addresses to the TUN interface"
+msgstr "连接远端时仅使用 IPv4，且不为 TUN 接口分配 IPv6 地址"
+
+msgid "TUN IPv6 local address (--tun-local6)"
+msgstr "TUN IPv6 本端地址（--tun-local6）"
+
+msgid "IPv6 address assigned to the TUN interface (the O/S end)"
+msgstr "分配给 TUN 接口的 IPv6 地址（系统本端）"
+
+msgid "TUN IPv6 peer address (--tun-peer6)"
+msgstr "TUN IPv6 对端地址（--tun-peer6）"
+
+msgid "IPv6 destination (peer) address of the TUN interface (the Phantun client end)"
+msgstr "TUN 接口的 IPv6 目的（对端）地址（Phantun 客户端一侧）"
+
+msgid "Handshake packet file (--handshake-packet)"
+msgstr "握手报文文件（--handshake-packet）"
+
+msgid "Optional path to a file whose content is sent as the first data packet to the server after the TCP handshake. The file must not exceed the MTU of the outgoing interface; it is always sent in a single packet."
+msgstr "可选。TCP 握手完成后，将该文件内容作为第一个数据包发送给服务端。文件大小不得超过出接口 MTU，且始终按单个报文发送、不会分片。"
+
+msgid "Log verbosity (RUST_LOG)"
+msgstr "日志级别（RUST_LOG）"
+
+msgid "Logging level passed to the daemon via the RUST_LOG environment variable"
+msgstr "通过 RUST_LOG 环境变量传给守护进程的日志级别"
+
+msgid "Off"
+msgstr "关闭"
+
+msgid "Error"
+msgstr "错误"
+
+msgid "Warning"
+msgstr "警告"
+
+msgid "Info"
+msgstr "信息"
+
+msgid "Debug"
+msgstr "调试"
+
+msgid "Trace"
+msgstr "跟踪"
+
+msgid "Auto firewall rules"
+msgstr "自动防火墙规则"
+
+msgid "Automatically insert nftables (fw4) rules for this instance: MASQUERADE traffic leaving the TUN interface towards the WAN"
+msgstr "为此实例自动插入 nftables（fw4）规则：对从 TUN 接口发往 WAN 的流量做 MASQUERADE"
+
+msgid "Overlying network"
+msgstr "承载网络"
+
+msgid "Firewall zone / interface used as the outgoing (WAN) network for the masquerade rule"
+msgstr "MASQUERADE 规则所使用的出向（WAN）防火墙区域/接口"
+
+msgid "The server listens for Phantun client connections on a TCP port and forwards the de-obfuscated UDP packets to the target UDP server. Incoming TCP traffic must be DNAT-ed to the TUN peer address — enable \"Auto firewall rules\" per instance to insert it automatically."
+msgstr "服务端在 TCP 端口上监听 Phantun 客户端连接，并将还原出的 UDP 报文转发给目标 UDP 服务器。入站 TCP 流量必须 DNAT 到 TUN 对端地址——勾选下方“自动防火墙规则”即可自动添加。"
+
+msgid "TCP listen port (--local)"
+msgstr "TCP 监听端口（--local）"
+
+msgid "Port on which this server listens for incoming Phantun client (fake TCP) connections, e.g. 4567"
+msgstr "服务端监听 Phantun 客户端（伪 TCP）连接的端口，例如 4567"
+
+msgid "UDP target (--remote)"
+msgstr "UDP 目标地址（--remote）"
+
+msgid "Address or host name and port this server forwards UDP packets to, e.g. 127.0.0.1:1234 or example.com:1234. IPv6 must be written as [IPv6]:PORT"
+msgstr "服务端转发 UDP 报文的目标 IP/域名与端口，例如 127.0.0.1:1234 或 example.com:1234。IPv6 地址须写成 [IPv6]:端口 形式"
+
+msgid "IPv4 destination (peer) address of the TUN interface (the Phantun server end). DNAT rules must redirect incoming traffic to this address."
+msgstr "TUN 接口的 IPv4 目的（对端）地址（Phantun 服务端一侧）。DNAT 规则须将入站流量重定向到此地址。"
+
+msgid "Do not assign IPv6 addresses to the TUN interface"
+msgstr "不为 TUN 接口分配 IPv6 地址"
+
+msgid "IPv6 destination (peer) address of the TUN interface (the Phantun server end)"
+msgstr "TUN 接口的 IPv6 目的（对端）地址（Phantun 服务端一侧）"
+
+msgid "Optional path to a file whose content is sent as the first data packet to the client after the TCP handshake. The file must not exceed the MTU of the outgoing interface; it is always sent in a single packet."
+msgstr "可选。TCP 握手完成后，将该文件内容作为第一个数据包发送给客户端。文件大小不得超过出接口 MTU，且始终按单个报文发送、不会分片。"
+
+msgid "Automatically insert nftables (fw4) rules for this instance: DNAT incoming TCP traffic on the listen port to the TUN peer address"
+msgstr "为此实例自动插入 nftables（fw4）规则：将监听端口上的入站 TCP 流量 DNAT 到 TUN 对端地址"
+
+msgid "Firewall zone / interface on which the DNAT rule matches incoming traffic"
+msgstr "DNAT 规则匹配入站流量所在的防火墙区域/接口"

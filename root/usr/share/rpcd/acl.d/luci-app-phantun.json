@@ -1,0 +1,17 @@
+{
+	"luci-app-phantun": {
+		"description": "Grant access to Phantun configuration and control",
+		"read": {
+			"ubus": {
+				"rc": [ "status" ]
+			},
+			"uci": [ "phantun" ]
+		},
+		"write": {
+			"ubus": {
+				"rc": [ "init" ]
+			},
+			"uci": [ "phantun" ]
+		}
+	}
+}
