@@ -13,11 +13,11 @@ var callInitAction = rpc.declare({
 	expect: { result: true }
 });
 
-var callServiceStatus = rpc.declare({
-	object: 'rc',
-	method: 'status',
+var callServiceList = rpc.declare({
+	object: 'service',
+	method: 'list',
 	params: [ 'name' ],
-	expect: { running: false }
+	expect: { }
 });
 
 function validateHostPort(sid, val) {
@@ -58,16 +58,20 @@ function validateFilePath(sid, val) {
 }
 
 return view.extend({
-	running: false,
+	instances: {},
+
+	fetchInstances: function() {
+		return L.resolveDefault(callServiceList('phantun'), {})
+			.then(L.bind(function(res) {
+				this.instances = (res.phantun && res.phantun.instances) || {};
+			}, this));
+	},
 
 	handleRestart: function() {
 		return callInitAction('phantun', 'restart')
 			.then(L.bind(function() {
 				ui.addNotification(null, E('p', _('Phantun service restarted.')), 'info');
-				return callServiceStatus('phantun');
-			}, this))
-			.then(L.bind(function(st) {
-				this.running = st.running;
+				return this.fetchInstances();
 			}, this));
 	},
 
@@ -75,11 +79,9 @@ return view.extend({
 		var m, s, o;
 
 		return Promise.all([
-			L.resolveDefault(callServiceStatus('phantun'), {}),
+			this.fetchInstances(),
 			uci.load('phantun')
 		]).then(L.bind(function(res) {
-			this.running = res[0].running;
-
 			m = new form.Map('phantun', _('Phantun'),
 				_('Phantun is a lightweight and fast UDP to TCP obfuscator. ' +
 				  'It obfuscates UDP packets into fake TCP streams so that they can pass through ' +
@@ -94,20 +96,24 @@ return view.extend({
 			s.anonymous = true;
 			s.tab('status', _('Status'));
 
-			o = s.taboption('status', form.DummyValue, '_state', _('Daemon'));
+			o = s.taboption('status', form.DummyValue, '_state', _('Instances'));
 			o.cfgvalue = L.bind(function() {
-				return this.running ? _('Running') : _('Not running');
+				var ins = this.instances, keys = Object.keys(ins);
+				var rows = [];
+				if (!keys.length)
+					return E('em', { class: 'badge warning' }, _('Not running'));
+				keys.forEach(L.bind(function(k) {
+					var i = ins[k];
+					var remote = uci.get('phantun', k, 'remote');
+					rows.push(E('div', [
+						E('strong', k), ': ',
+						E('em', { class: 'badge ' + (i.running ? 'success' : 'warning') },
+							i.running ? '%s (PID %d)'.format(_('Running'), i.pid) : _('Not running')),
+						remote ? ' → ' + remote : ''
+					]));
+				}, this));
+				return E('div', rows);
 			}, this);
-
-			o = s.taboption('status', form.DummyValue, '_instances', _('Configured instances'));
-			o.cfgvalue = function() {
-				var c = uci.get('phantun', 'client') || {};
-				var sv = uci.get('phantun', 'server') || {};
-				var nc = 0, ns = 0;
-				Object.keys(c).forEach(function(k) { if (c[k]['.type'] === 'client') nc++; });
-				Object.keys(sv).forEach(function(k) { if (sv[k]['.type'] === 'server') ns++; });
-				return '%s: %d, %s: %d'.format(_('Clients'), nc, _('Servers'), ns);
-			};
 
 			o = s.taboption('status', form.DummyValue, '_hint');
 			o.rawhtml = true;

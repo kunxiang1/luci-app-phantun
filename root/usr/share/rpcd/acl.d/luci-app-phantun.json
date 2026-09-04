@@ -3,7 +3,8 @@
 		"description": "Grant access to Phantun configuration and control",
 		"read": {
 			"ubus": {
-				"rc": [ "status" ]
+				"rc": [ "status" ],
+				"service": [ "list" ]
 			},
 			"uci": [ "phantun" ]
 		},

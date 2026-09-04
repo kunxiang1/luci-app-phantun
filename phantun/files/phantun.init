@@ -72,11 +72,13 @@ phantun_build_args() {
 
 # Optional automatic firewall rules (fw4 / nftables, inet family => v4+v6)
 # client: SNAT/MASQUERADE traffic leaving the TUN device via the WAN
-# server: DNAT incoming TCP dport <listen> to the TUN local address
+# server: DNAT incoming TCP dport <listen> to the TUN *peer* address
+#         (phantun's fake-TCP stack only receives packets routed to the
+#          point-to-point peer address, see dndx/phantun docker/phantun.sh)
 phantun_firewall() {
 	local s="$1" mode="$2"
 	local firewall network tun listen
-	local physdev tun_local tun_local6 ipv4_only
+	local physdev tun_peer tun_peer6 ipv4_only
 
 	config_get_bool firewall "$s" firewall 0
 	[ "$firewall" -eq 1 ] || return 0
@@ -89,6 +91,15 @@ phantun_firewall() {
 	network_get_physdev physdev "$network" || return 0
 	nft list table inet phantun >/dev/null 2>&1 || nft add table inet phantun
 
+	# let traffic through the TUN interface pass the forward filter
+	nft add chain inet phantun "${s}_fwd" \
+		"{ type filter hook forward priority 0; policy accept; }" 2>/dev/null
+	nft flush chain inet phantun "${s}_fwd"
+	if [ -n "$tun" ]; then
+		nft add rule inet phantun "${s}_fwd" iifname "$tun" accept
+		nft add rule inet phantun "${s}_fwd" oifname "$tun" accept
+	fi
+
 	case "$mode" in
 		client)
 			[ -n "$tun" ] || return 0
@@ -98,17 +109,17 @@ phantun_firewall() {
 			nft add rule inet phantun "$s" iifname "$tun" oif "$physdev" masquerade
 			;;
 		server)
-			config_get tun_local  "$s" tun_local '192.168.201.1'
-			config_get tun_local6 "$s" tun_local6 'fcc9::1'
+			config_get tun_peer  "$s" tun_peer  '192.168.201.2'
+			config_get tun_peer6 "$s" tun_peer6 'fcc9::2'
 			config_get_bool ipv4_only "$s" ipv4_only 0
 			local port="${listen##*:}"
 			echo "$port" | grep -q '^[0-9]*$' || return 0
 			nft add chain inet phantun "$s" \
 				"{ type nat hook prerouting priority dstnat; policy accept; }" 2>/dev/null
 			nft flush chain inet phantun "$s"
-			nft add rule inet phantun "$s" iif "$physdev" tcp dport "$port" dnat ip to "$tun_local"
+			nft add rule inet phantun "$s" iif "$physdev" tcp dport "$port" dnat ip to "$tun_peer"
 			[ "$ipv4_only" -eq 1 ] || \
-				nft add rule inet phantun "$s" iif "$physdev" tcp dport "$port" dnat ip6 to "$tun_local6"
+				nft add rule inet phantun "$s" iif "$physdev" tcp dport "$port" dnat ip6 to "$tun_peer6"
 			;;
 	esac
 }
@@ -120,6 +131,8 @@ phantun_firewall_cleanup() {
 	command -v nft >/dev/null 2>&1 || return 0
 	nft flush chain inet phantun "$s" 2>/dev/null
 	nft delete chain inet phantun "$s" 2>/dev/null
+	nft flush chain inet phantun "${s}_fwd" 2>/dev/null
+	nft delete chain inet phantun "${s}_fwd" 2>/dev/null
 }
 
 start_phantun_instance() {
