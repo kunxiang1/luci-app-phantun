@@ -17,11 +17,42 @@ PKG_NAME:=phantun
 PKG_VERSION:=0.8.1
 PKG_RELEASE:=1
 
-PKG_SOURCE:=phantun_x86_64-unknown-linux-musl.zip
-PKG_SOURCE_URL:=https://github.com/dndx/phantun/releases/download/v$(PKG_VERSION)/
-PKG_HASH:=0cf40f0ac48411f8ced94ce0afd617105c6b9a69ad8db137c3b1e4d184d6fcdb
+# Official static musl prebuilt. Target triple derived from
+# REAL_GNU_TARGET_NAME exactly like feeds/packages/lang/rust/rust-values.mk.
+PHANTUN_TARGET:=$(subst openwrt,unknown,$(REAL_GNU_TARGET_NAME))
+PHANTUN_TARGET:=$(subst muslgnueabi,musleabi,$(PHANTUN_TARGET))
+PHANTUN_TARGET:=$(subst i486,i686,$(subst i586,i686,$(PHANTUN_TARGET)))
+ifneq ($(findstring arm,$(PHANTUN_TARGET)),)
+  ifeq ($(CONFIG_arm_v7),y)
+    PHANTUN_TARGET:=$(subst arm,armv7,$(PHANTUN_TARGET))
+  else ifeq ($(CONFIG_arm_v6),)
+    PHANTUN_TARGET:=$(subst arm,armv5te,$(PHANTUN_TARGET))
+  endif
+  ifeq ($(CONFIG_HAS_FPU),y)
+    PHANTUN_TARGET:=$(subst musleabi,musleabihf,$(PHANTUN_TARGET))
+  endif
+endif
+# MIPS builds are upstream nightly-only, zip name carries the suffix
+ifneq ($(findstring mips,$(PHANTUN_TARGET)),)
+  PHANTUN_TARGET:=$(PHANTUN_TARGET)_nightly
+endif
 
-PKG_BUILD_DIR:=$(BUILD_DIR)/phantun-$(PKG_VERSION)
+# sha256 of every zip published for v0.8.1; unknown arch -> empty hash ->
+# make fails loudly at download, add the line then (or build from source)
+PKG_HASH_x86_64-unknown-linux-musl:=0cf40f0ac48411f8ced94ce0afd617105c6b9a69ad8db137c3b1e4d184d6fcdb
+PKG_HASH_aarch64-unknown-linux-musl:=e3f2336b5173df071c8931b5e0e3d44c57453da0456007ed459ed369610c91fa
+PKG_HASH_arm-unknown-linux-musleabihf:=7969f28ae8481a885aae49c70c3e8b6c263fa2bf5c00768789691a4af9947bed
+PKG_HASH_armv7-unknown-linux-musleabihf:=71f16f7a18c2ac98f3fec482d99a0e69540966cb867309f615617567d5d2f30f
+PKG_HASH_i686-unknown-linux-musl:=46f57319cb8026c4fe8805fb9b8c84918a358b361a0b5f87b9bc1e1a650cc2e5
+PKG_HASH_mips-unknown-linux-musl_nightly:=d3e600ff251db12f226ddc4eff43e0c7dbbfcc428e6d87567f2491b28c96dd27
+PKG_HASH_mipsel-unknown-linux-musl_nightly:=cf35ff919cc892239af81a825286ff808ec063a741be440b77fab61d16f04919
+PKG_HASH_mips64-unknown-linux-muslabi64_nightly:=1bb6b17e7dd2b594a925a5d8c70992db44351773d8044d2a2909f8e5973662dc
+PKG_HASH:=$(PKG_HASH_$(PHANTUN_TARGET))
+
+PKG_SOURCE:=phantun_$(PHANTUN_TARGET).zip
+PKG_SOURCE_URL:=https://github.com/dndx/phantun/releases/download/v$(PKG_VERSION)/
+
+PKG_BUILD_DIR:=$(BUILD_DIR)/phantun-$(PKG_VERSION)-$(PHANTUN_TARGET)
 PKG_BUILD_PARALLEL:=0
 
 include $(INCLUDE_DIR)/package.mk
